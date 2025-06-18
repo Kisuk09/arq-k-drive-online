@@ -1,0 +1,2623 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRIVIN</title>
+    <!-- Link para o Manifesto da Aplicação Web (necessário para PWA) -->
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        /* Estilos Globais - Ajustes Forçados */
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            min-height: 100vh !important;
+            width: 100vw !important; /* Garante que ocupa toda a largura da viewport */
+            overflow-x: hidden !important; /* Esconde a barra de rolagem horizontal */
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #000; /* Preto */
+            color: #fff; /* Branco */
+            /* padding-top será definido dinamicamente via JavaScript no #mainContent */
+        }
+
+        /* Cores */
+        :root {
+            --primary-color: #000; /* Preto */
+            --secondary-color: #333; /* Cinza escuro */
+            --tertiary-color: #555; /* Cinza médio */
+            --text-color: #fff; /* Branco */
+            --accent-color: #f00; /* Vermelho */
+            --fab-background: #4CAF50; /* Verde para o FAB */
+            --fab-background-active: #D32F2F; /* Vermelho para o FAB ativo */
+        }
+
+        /* Cabeçalho */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: var(--primary-color);
+            border-bottom: 2px solid var(--accent-color);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            box-sizing: border-box; /* Inclui padding na largura */
+            z-index: 999;
+        }
+
+        .site-title {
+            font-size: 2.2em;
+            color: var(--text-color);
+            font-weight: bold;
+        }
+
+        /* Botão Usuário no Cabeçalho */
+        #userProfileBtn {
+            background-color: var(--tertiary-color);
+            color: var(--text-color);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease;
+        }
+        #userProfileBtn:hover {
+            background-color: #666;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* FAB (Floating Action Button) */
+        #editModeBtn {
+            position: fixed !important;
+            bottom: 25px !important;
+            right: 25px !important;
+            left: auto !important;
+            top: auto !important;
+            z-index: 999999 !important;
+            background-color: var(--fab-background);
+            color: #fff;
+            border: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 1.8em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            text-decoration: none;
+        }
+
+        #editModeBtn:hover {
+            background-color: #4CAF50;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+        }
+        
+        /* Animação do ícone */
+        #editModeBtn .icon-plus {
+            transform: rotate(0deg);
+            transition: transform 0.3s ease;
+        }
+        #editModeBtn.active .icon-plus {
+            transform: rotate(45deg);
+            font-size: 1.5em;
+        }
+        #editModeBtn.active {
+            background-color: var(--fab-background-active);
+        }
+
+        /* Tooltip para "Modo Edit" */
+        #editModeBtn::after {
+            content: "Modo Edit";
+            position: absolute;
+            right: 70px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        #editModeBtn:hover::after {
+            opacity: 1;
+        }
+        #editModeBtn.active::after {
+            content: "Fechar";
+        }
+
+
+        /* Dropdown do Menu de Gerenciamento */
+        #manageDropdown {
+            position: fixed !important;
+            bottom: 95px !important;
+            right: 25px !important;
+            left: auto !important;
+            top: auto !important;
+            background-color: var(--secondary-color);
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            min-width: 150px;
+            z-index: 999998 !important;
+            transform-origin: bottom right;
+            opacity: 0;
+            transform: scale(0.9);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 8px;
+        }
+
+        #manageDropdown.active {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+
+        #manageDropdown button {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            background-color: var(--tertiary-color);
+            color: var(--text-color);
+            text-align: left;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        #manageDropdown button:hover {
+            background-color: #666;
+            color: var(--accent-color);
+        }
+
+        /* Carrossel */
+        .carousel-section {
+            padding: 20px 0;
+            position: relative;
+        }
+
+        .carousel-title-container {
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+
+        /* Animação para a linha e o título */
+        .carousel-title-container::before {
+            content: '';
+            width: 5px;
+            height: 25px;
+            background-color: var(--accent-color);
+            margin-right: 10px;
+            border-radius: 2px;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        .carousel-title-container:hover::before {
+            width: 10px;
+            background-color: #fff;
+        }
+
+        .carousel-title {
+            font-size: 1.8em;
+            color: var(--text-color);
+            margin: 0;
+            transition: color 0.3s ease, transform 0.3s ease;
+        }
+
+        .carousel-title-container:hover .carousel-title {
+            color: var(--accent-color);
+            transform: translateX(5px);
+        }
+
+        .carousel-wrapper {
+            position: relative;
+            padding: 0 20px;
+        }
+
+        .carousel-container {
+            display: flex;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding-bottom: 15px;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .carousel-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .carousel-item {
+            flex: 0 0 auto;
+            width: 150px;
+            margin-right: 15px;
+            background-color: var(--primary-color);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+            border: 2px solid transparent;
+        }
+
+        /* Animação e apresentação da capa */
+        .carousel-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7);
+            border: 2px solid var(--accent-color);
+        }
+
+        .carousel-item img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            display: block;
+            border-bottom: 1px solid var(--tertiary-color);
+        }
+
+        .carousel-item h3 {
+            font-size: 0.9em;
+            text-align: center;
+            padding: 8px;
+            color: var(--text-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin: 0;
+        }
+
+        /* Popups (geral) */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .popup-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .popup-content {
+            background-color: var(--secondary-color);
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            color: var(--text-color);
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+
+            transform: translateY(-20px) scale(0.95);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .popup-overlay.active .popup-content {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+
+
+        .popup-content h2 {
+            color: var(--accent-color);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .popup-content label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .popup-content input[type="text"],
+        .popup-content textarea,
+        .popup-content select,
+        .popup-content input[type="url"],
+        .popup-content input[type="email"],
+        .popup-content input[type="password"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid var(--tertiary-color);
+            border-radius: 5px;
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            font-size: 1em;
+        }
+
+        .popup-content textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .popup-content button {
+            background-color: var(--accent-color);
+            color: var(--text-color);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1em;
+            margin-top: 10px;
+            transition: background-color 0.3s ease;
+            display: block;
+            width: 100%;
+            text-align: center;
+        }
+
+        .popup-content button:hover {
+            background-color: #c00;
+        }
+
+        .popup-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 1.8em;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .popup-close:hover {
+            color: var(--accent-color);
+        }
+
+        .episode-input-group, .link-input-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            border: 1px solid var(--tertiary-color);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            background-color: var(--primary-color);
+            position: relative;
+        }
+
+        .episode-fields-content, .link-fields-content {
+            flex-grow: 1;
+        }
+
+        .episode-input-group label, .link-input-group label {
+            margin-bottom: 5px;
+        }
+
+        .episode-input-group input, .link-input-group input {
+            font-size: 0.9em;
+            padding: 6px;
+            margin-bottom: 8px;
+            width: calc(100% - 12px);
+        }
+
+        /* Botão de Excluir Episódio/Link */
+        .remove-episode-button, .remove-link-button {
+            flex-shrink: 0;
+            background-color: #d32f2f;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            font-size: 1.2em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-top: 5px;
+        }
+        .remove-episode-button:hover, .remove-link-button:hover {
+            background-color: #b71c1c;
+        }
+
+        .add-episode-button, .add-link-button {
+            background-color: var(--tertiary-color);
+            margin-top: 0;
+            width: auto;
+            padding: 8px 15px;
+            font-size: 0.9em;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+
+        .add-episode-button:hover, .add-link-button:hover {
+            background-color: #666;
+        }
+
+        /* Detalhes do Item (Popup) - Estilização aprimorada */
+        .item-details-popup {
+            max-width: 700px;
+            background: linear-gradient(to bottom, var(--secondary-color), var(--primary-color));
+            border-radius: 15px;
+            padding: 25px 35px;
+            display: flex;
+            gap: 25px;
+            align-items: flex-start;
+            flex-direction: column; /* Altera para coluna no mobile para melhor visualização */
+        }
+
+        .item-details-popup .details-img {
+            max-width: 200px;
+            height: auto;
+            border-radius: 10px;
+            margin-bottom: 0;
+            border: 3px solid var(--accent-color);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            object-fit: cover;
+        }
+
+        .item-details-popup .details-info {
+            flex-grow: 1;
+            width: 100%; /* Ocupa toda a largura disponível */
+        }
+
+        .item-details-popup .details-info h3 {
+            font-size: 1.8em;
+            color: var(--text-color);
+            margin-bottom: 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 8px;
+        }
+
+        .item-details-popup .details-info p {
+            font-size: 0.95em;
+            margin-bottom: 8px;
+            line-height: 1.5;
+            color: #ccc;
+        }
+
+        .item-details-popup .details-info strong {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        .item-details-popup .episode-list, .details-links-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .item-details-popup .episode-list::-webkit-scrollbar, .details-links-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        .item-details-popup .episode-list::-webkit-scrollbar-track, .details-links-list::-webkit-scrollbar-track {
+            background: var(--primary-color);
+            border-radius: 10px;
+        }
+        .item-details-popup .episode-list::-webkit-scrollbar-thumb, .details-links-list::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 10px;
+        }
+        .item-details-popup .episode-list::-webkit-scrollbar-thumb:hover, .details-links-list::-webkit-scrollbar-thumb:hover {
+            background: #b00;
+        }
+
+        .item-details-popup .episode-list li, .details-links-list li {
+            background-color: #2a2a2a;
+            padding: 10px 15px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+            transition: background-color 0.2s ease;
+        }
+
+        .item-details-popup .episode-list li:hover, .details-links-list li:hover {
+            background-color: #4a4a4a;
+        }
+
+        .item-details-popup .episode-list li a, .details-links-list li a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+
+        .item-details-popup .episode-list li a:hover, .details-links-list li a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        /* NOVO: Estilos para o Carrossel de Sugestões */
+        .suggestions-carousel-container {
+            margin-top: 20px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .suggestions-carousel-container h4 {
+            font-size: 1.2em;
+            color: var(--text-color);
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--tertiary-color);
+            padding-bottom: 5px;
+            text-align: left;
+        }
+        .suggestions-carousel-wrapper {
+            display: flex;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding-bottom: 10px; /* Para a scrollbar */
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .suggestions-carousel-wrapper::-webkit-scrollbar {
+            display: none;
+        }
+        .suggestion-item {
+            flex: 0 0 auto;
+            width: 100px; /* Tamanho menor */
+            margin-right: 10px;
+            background-color: var(--primary-color);
+            border-radius: 6px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+            border: 1px solid transparent;
+        }
+        .suggestion-item:hover {
+            transform: scale(1.03);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.7);
+            border: 1px solid var(--accent-color);
+        }
+        .suggestion-item img {
+            width: 100%;
+            height: 140px; /* Altura proporcional ao tamanho menor */
+            object-fit: cover;
+            display: block;
+        }
+        .suggestion-item h5 {
+            font-size: 0.8em;
+            text-align: center;
+            padding: 5px;
+            color: var(--text-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin: 0;
+        }
+
+        /* Edição e Exclusão (Gerenciar) */
+        .edit-popup-content .search-bar {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .edit-popup-content .search-bar input {
+            width: calc(100% - 20px);
+            padding: 10px 40px 10px 15px;
+            border: 1px solid var(--tertiary-color);
+            border-radius: 25px;
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            font-size: 1em;
+            outline: none;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .edit-popup-content .search-bar input:focus {
+            border-color: var(--accent-color);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 5px rgba(255, 0, 0, 0.5);
+        }
+
+        .edit-popup-content .search-bar .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--tertiary-color);
+            font-size: 1.2em;
+            pointer-events: none;
+        }
+
+
+        .edit-popup-content .item-card {
+            display: flex;
+            align-items: center;
+            background-color: var(--primary-color);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            transition: background-color 0.2s ease;
+        }
+        .edit-popup-content .item-card:hover {
+            background-color: #1a1a1a;
+        }
+
+        .edit-popup-content .item-card img {
+            width: 60px;
+            height: 90px;
+            object-fit: cover;
+            margin-right: 15px;
+            border-radius: 3px;
+        }
+
+        .edit-popup-content .item-card h3 {
+            font-size: 1em;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: calc(100% - 150px);
+        }
+        .edit-popup-content .item-card p {
+            font-size: 0.8em;
+            color: #aaa;
+            margin-top: 3px;
+        }
+
+        .edit-popup-content .item-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+        }
+
+        .edit-popup-content .item-actions button {
+            background-color: var(--tertiary-color);
+            padding: 8px 12px;
+            font-size: 0.85em;
+            border-radius: 5px;
+            width: auto;
+            display: inline-block;
+            transition: background-color 0.2s ease;
+        }
+
+        .edit-popup-content .item-actions button.delete {
+            background-color: #d32f2f;
+        }
+
+        .edit-popup-content .item-actions button:hover {
+            background-color: #666;
+        }
+        .edit-popup-content .item-actions button.delete:hover {
+            background-color: #b71c1c;
+        }
+        /* Estilos para a Categoria Destaque */
+        .highlight-container {
+            display: flex;
+            background-color: var(--secondary-color);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--accent-color);
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .highlight-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+        }
+
+        .highlight-image-wrapper {
+            flex-shrink: 0;
+            width: 200px;
+            height: 300px;
+            overflow: hidden;
+            border-right: 2px solid var(--accent-color);
+        }
+
+        .highlight-cover {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .highlight-info {
+            flex-grow: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .highlight-info h3 {
+            font-size: 1.8em;
+            color: var(--text-color);
+            margin-top: 0;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--tertiary-color);
+            padding-bottom: 5px;
+        }
+
+        .highlight-info p {
+            font-size: 1em;
+            color: #ccc;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .highlight-info .highlight-rating {
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        .highlight-info .highlight-synopsis {
+            font-size: 0.9em;
+            max-height: 120px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        .highlight-info .highlight-synopsis::-webkit-scrollbar {
+            width: 5px;
+        }
+        .highlight-info .highlight-synopsis::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 10px;
+        }
+        .highlight-info .highlight-synopsis::-webkit-scrollbar-track {
+            background: var(--primary-color);
+        }
+
+        /* Novo estilo para o modal de autenticação */
+        .auth-modal-content {
+            background-color: #2d3748;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+            color: #e2e8f0;
+        }
+        .auth-modal-content h2 {
+            font-size: 2em;
+            color: var(--accent-color);
+            margin-bottom: 25px;
+        }
+        .auth-modal-content input {
+            width: calc(100% - 20px);
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid #4a5568;
+            background-color: #1a202c;
+            color: #e2e8f0;
+            font-size: 1em;
+        }
+        .auth-modal-content .auth-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .auth-modal-content .auth-buttons button {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+        .auth-modal-content .auth-buttons button:hover {
+            transform: translateY(-2px);
+        }
+        .auth-modal-content .btn-login {
+            background-color: var(--accent-color);
+            color: #fff;
+        }
+        .auth-modal-content .btn-login:hover {
+            background-color: #c00;
+        }
+        .auth-modal-content .btn-register {
+            background-color: #3182ce;
+            color: #fff;
+        }
+        .auth-modal-content .btn-register:hover {
+            background-color: #2b6cb0;
+        }
+        .auth-modal-content .btn-anonymous {
+            background-color: #4a5568;
+            color: #e2e8f0;
+        }
+        .auth-modal-content .btn-anonymous:hover {
+            background-color: #636b6f;
+        }
+        .auth-modal-content .auth-message {
+            color: #f56565;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        .auth-modal-content p {
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            color: #a0aec0;
+        }
+        .auth-modal-content a {
+            color: var(--accent-color);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .auth-modal-content a:hover {
+            color: #fff;
+        }
+
+        /* Novo estilo para o modal de perfil do usuário */
+        .user-profile-modal-content {
+            background-color: var(--secondary-color);
+            padding: 25px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 350px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .user-profile-modal-content h2 {
+            color: var(--accent-color);
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        .user-profile-modal-content #userIdDisplayPopup {
+            color: #e0e0e0;
+            font-size: 1em;
+            word-break: break-all;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: var(--primary-color);
+            border-radius: 5px;
+        }
+        .user-profile-modal-content #logoutBtnPopup {
+            background-color: #dc3545;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 20px;
+            width: 100%;
+            transition: background-color 0.2s ease;
+        }
+        .user-profile-modal-content #logoutBtnPopup:hover {
+            background-color: #c82333;
+        }
+
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                padding: 15px 15px;
+            }
+
+            .site-title {
+                font-size: 2em;
+                margin-bottom: 0;
+            }
+
+            #userProfileBtn {
+                padding: 7px 12px;
+                font-size: 0.8em;
+            }
+
+            /* FAB e Dropdown em mobile */
+            #editModeBtn {
+                width: 50px !important;
+                height: 50px !important;
+                bottom: 20px !important;
+                right: 20px !important;
+                font-size: 1.5em !important;
+            }
+            #editModeBtn.active .icon-plus {
+                font-size: 1.2em !important;
+            }
+
+            #editModeBtn::after {
+                right: 60px !important;
+                font-size: 0.7em !important;
+            }
+
+            #manageDropdown {
+                bottom: 80px !important;
+                right: 20px !important;
+            }
+
+            .carousel-title-container {
+                padding: 0 15px;
+            }
+
+            .carousel-title {
+                font-size: 1.6em;
+            }
+
+            .carousel-wrapper {
+                padding: 0 15px;
+            }
+
+            .carousel-container {
+                padding: 0 15px 10px;
+            }
+
+            .carousel-item {
+                width: 130px;
+                margin-right: 12px;
+            }
+
+            .carousel-item img {
+                height: 190px;
+            }
+
+            .popup-content {
+                padding: 20px;
+            }
+
+            .popup-content h2 {
+                font-size: 1.5em;
+            }
+
+            .item-details-popup {
+                flex-direction: column; /* Já estava definido como column */
+                align-items: center;
+                text-align: center;
+                padding: 20px;
+            }
+
+            .item-details-popup .details-img {
+                max-width: 150px;
+                margin-bottom: 20px;
+            }
+
+            .item-details-popup .details-info h3 {
+                text-align: center;
+            }
+
+            .item-details-popup .episode-list, .details-links-list {
+                max-height: 150px;
+            }
+
+            .edit-popup-content .item-card {
+                flex-wrap: wrap;
+                justify-content: center;
+                text-align: center;
+            }
+
+            .edit-popup-content .item-card img {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+
+            .edit-popup-content .item-actions {
+                margin-left: 0;
+                margin-top: 10px;
+                width: 100%;
+                justify-content: center;
+            }
+            /* Ajuste para o botão de exclusão de episódio/link em telas menores */
+            .episode-input-group, .link-input-group {
+                flex-direction: column;
+                align-items: stretch;
+                padding-right: 15px;
+            }
+            .remove-episode-button, .remove-link-button {
+                position: static;
+                margin-left: auto;
+                margin-top: 10px;
+                width: 30px;
+                height: 30px;
+                font-size: 1.2em;
+            }
+            .episode-fields-content, .link-fields-content {
+                width: 100%;
+            }
+
+            /* Responsividade para Destaque */
+            .highlight-container {
+                flex-direction: column;
+                margin: 15px;
+            }
+
+            .highlight-image-wrapper {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 2px solid var(--accent-color);
+            }
+
+            .highlight-cover {
+                max-height: 300px;
+                object-fit: contain;
+            }
+
+            .highlight-info {
+                padding: 15px;
+                text-align: center;
+            }
+            .highlight-info h3 {
+                font-size: 1.5em;
+                text-align: center;
+            }
+            .highlight-info p {
+                font-size: 0.85em;
+            }
+
+            /* Auth Modal Responsividade */
+            .auth-modal-content, .user-profile-modal-content {
+                max-width: 95%;
+                padding: 20px;
+            }
+            .auth-modal-content h2, .user-profile-modal-content h2 {
+                font-size: 1.5em;
+            }
+            .auth-modal-content input {
+                padding: 10px;
+            }
+            .auth-modal-content .auth-buttons button {
+                font-size: 1em;
+                padding: 10px 15px;
+            }
+
+            /* Sugestões no Mobile */
+            .suggestions-carousel-container h4 {
+                text-align: center;
+            }
+            .suggestion-item {
+                width: 80px; /* Ainda menor no mobile */
+            }
+            .suggestion-item img {
+                height: 110px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .site-title {
+                font-size: 1.6em;
+            }
+
+            #userProfileBtn {
+                padding: 6px 10px;
+                font-size: 0.75em;
+            }
+
+            .carousel-section {
+                padding: 15px 0;
+            }
+
+            .carousel-title {
+                font-size: 1.3em;
+            }
+
+            .carousel-wrapper {
+                padding: 0 10px;
+            }
+
+            .carousel-container {
+                padding: 0 10px 8px;
+            }
+
+            .carousel-item {
+                width: 100px;
+                margin-right: 10px;
+            }
+
+            .carousel-item img {
+                height: 150px;
+            }
+
+            .popup-content input[type="text"],
+            .popup-content textarea,
+            .popup-content select {
+                padding: 8px;
+                font-size: 0.9em;
+            }
+
+            .popup-content button {
+                padding: 10px 15px;
+                font-size: 0.9em;
+            }
+
+            .item-details-popup .details-img {
+                max-width: 120px;
+            }
+
+            .edit-popup-content .item-actions button {
+                padding: 6px 10px;
+                font-size: 0.8em;
+            }
+            .highlight-info h3 {
+                font-size: 1.3em;
+            }
+            .highlight-info p {
+                font-size: 0.85em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header id="mainHeader">
+        <div class="site-title">DRIVIN</div>
+        <button id="userProfileBtn">Usuário</button>
+    </header>
+
+    <main id="mainContent">
+        <section id="destaque-section" class="carousel-section">
+            <div class="carousel-title-container">
+                <h2 class="carousel-title">Destaque</h2>
+            </div>
+            <div class="highlight-container">
+                <div class="highlight-image-wrapper">
+                    <img id="highlightCover" src="https://placehold.co/200x300/333/FFF?text=Capa" alt="Capa do Destaque" class="highlight-cover">
+                </div>
+                <div class="highlight-info">
+                    <h3 id="highlightTitle">Título do Destaque</h3>
+                    <p>Classificação: <span id="highlightRating">N/A</span></p>
+                    <p id="highlightSynopsis" class="highlight-synopsis">Sinopse curta e clara do filme ou série em destaque. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modais de Conteúdo -->
+    <div id="addMoviePopup" class="popup-overlay hidden">
+        <div class="popup-content">
+            <span class="popup-close" onclick="closePopup('addMoviePopup')">&times;</span>
+            <h2>Adicionar Filme</h2>
+            <form id="addMovieForm">
+                <label for="imdbCode">Código IMDB:</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <input type="text" id="imdbCode" placeholder="Ex: tt1234567" style="flex-grow: 1; margin-bottom: 0;">
+                    <button type="button" id="searchImdbBtn" style="width: auto; padding: 10px 15px; margin-top: 0; font-size: 0.9em;">Buscar IMDB</button>
+                </div>
+                <p id="imdbLoading" style="color: #ffc107; text-align: center; display: none;">Buscando informações...</p>
+                <p id="imdbError" style="color: #dc3545; text-align: center; display: none;">Erro ao buscar informações. Verifique o código IMDB.</p>
+
+
+                <label for="movieTitle">Título:</label>
+                <input type="text" id="movieTitle" required>
+
+                <label for="movieCover">Link da Capa:</label>
+                <input type="text" id="movieCover" required>
+
+                <label for="movieSynopsis">Sinopse:</label>
+                <textarea id="movieSynopsis" rows="4" required></textarea>
+
+                <label for="movieRating">Classificação Indicativa:</label>
+                <input type="text" id="movieRating" required>
+
+                <label for="movieCategories">Categorias (separadas por vírgula):</label>
+                <input type="text" id="movieCategories" placeholder="Ex: Ação, Comédia, Sci-Fi" required>
+
+                <!-- NOVO CAMPO: Coleção para Filmes -->
+                <label for="movieCollections">Coleção (separadas por vírgula, opcional):</label>
+                <input type="text" id="movieCollections" placeholder="Ex: Barbie, Prime Video">
+
+                <h3 style="font-size: 1.2em; margin-top: 20px; margin-bottom: 10px;">Links para Assistir (Máx. 5):</h3>
+                <div id="movieLinksContainer">
+                    <!-- Campos de link serão adicionados aqui via JS -->
+                </div>
+                <button type="button" class="add-link-button" onclick="addLinkField('movie')">Adicionar Link</button>
+
+                <button type="submit">Adicionar Filme</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="addSeriesPopup" class="popup-overlay hidden">
+        <div class="popup-content">
+            <span class="popup-close" onclick="closePopup('addSeriesPopup')">&times;</span>
+            <h2>Adicionar Série</h2>
+            <form id="addSeriesForm">
+                <label for="seriesImdbCode">Código IMDB:</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <input type="text" id="seriesImdbCode" placeholder="Ex: tt1234567" style="flex-grow: 1; margin-bottom: 0;">
+                    <button type="button" id="searchSeriesImdbBtn" style="width: auto; padding: 10px 15px; margin-top: 0; font-size: 0.9em;">Buscar IMDB</button>
+                </div>
+                <p id="seriesImdbLoading" style="color: #ffc107; text-align: center; display: none;">Buscando informações...</p>
+                <p id="seriesImdbError" style="color: #dc3545; text-align: center; display: none;">Erro ao buscar informações. Verifique o código IMDB.</p>
+
+                <label for="seriesTitle">Título:</label>
+                <input type="text" id="seriesTitle" required>
+
+                <label for="seriesCover">Link da Capa:</label>
+                <input type="text" id="seriesCover" required>
+
+                <label for="seriesRating">Classificação Indicativa:</label>
+                <input type="text" id="seriesRating" required>
+
+                <label for="seriesSynopsis">Sinopse:</label>
+                <textarea id="seriesSynopsis" rows="4" required></textarea>
+
+                <div id="episodesContainer">
+                    <h3>Episódios:</h3>
+                </div>
+                <button type="button" class="add-episode-button" onclick="addEpisodeField()">Adicionar Episódio</button>
+
+                <h3 style="font-size: 1.2em; margin-top: 20px; margin-bottom: 10px;">Links para Assistir (Máx. 5):</h3>
+                <div id="seriesLinksContainer">
+                </div>
+                <button type="button" class="add-link-button" onclick="addLinkField('series')">Adicionar Link</button>
+
+                <label for="seriesCategories">Categorias (separadas por vírgula):</label>
+                <input type="text" id="seriesCategories" placeholder="Ex: Ação, Drama, Animação" required>
+
+                <!-- NOVO CAMPO: Coleção para Séries -->
+                <label for="seriesCollections">Coleção (separadas por vírgula, opcional):</label>
+                <input type="text" id="seriesCollections" placeholder="Ex: Marvel, Scooby-Doo">
+
+                <button type="submit">Adicionar Série</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="itemDetailsPopup" class="popup-overlay hidden">
+        <div class="popup-content item-details-popup">
+            <span class="popup-close" onclick="closePopup('itemDetailsPopup')">&times;</span>
+            <img id="detailsCover" src="" alt="Capa" class="details-img">
+            <div class="details-info">
+                <h3 id="detailsTitle"></h3>
+                <p><strong>Classificação Indicativa:</strong> <span id="detailsRating"></span></p>
+                <p><strong>Categorias:</strong> <span id="detailsCategories"></span></p>
+                <p><strong>Sinopse:</strong> <span id="detailsSynopsis"></span></p>
+                <!-- NOVO: Display de Coleções -->
+                <p id="detailsCollectionsContainer" class="hidden"><strong>Coleções:</strong> <span id="detailsCollections"></span></p>
+                
+                <h4 style="font-size: 1.1em; margin-top: 15px; margin-bottom: 8px;" id="episodesListTitle">Episódios:</h4>
+                <ul id="detailsEpisodes" class="episode-list hidden">
+                </ul>
+
+                <h4 style="font-size: 1.1em; margin-top: 15px; margin-bottom: 8px;" id="linksListTitle">Assistir em:</h4>
+                <ul id="detailsLinks" class="details-links-list">
+                </ul>
+
+                <!-- NOVO: Container para o Carrossel de Sugestões -->
+                <div id="suggestionsCarouselContainer" class="suggestions-carousel-container hidden">
+                    <h4>Sugestões:</h4>
+                    <div id="suggestionsCarouselWrapper" class="suggestions-carousel-wrapper">
+                        <!-- Itens de sugestão serão adicionados aqui via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="editContentPopup" class="popup-overlay hidden">
+        <div class="popup-content edit-popup-content">
+            <span class="popup-close" onclick="closePopup('editContentPopup')">&times;</span>
+            <h2>Editar ou Excluir Conteúdo</h2>
+            <div class="search-bar">
+                <input type="text" id="editSearchInput" placeholder="Buscar título...">
+                <span class="search-icon">&#128269;</span> </div>
+            <div id="editableContentList">
+                </div>
+        </div>
+    </div>
+
+    <!-- Modal de Autenticação -->
+    <div id="authPopup" class="popup-overlay active">
+        <div class="popup-content auth-modal-content">
+            <h2>Bem-vindo ao DRIVIN!</h2>
+            <p>Faça login para aceder aos seus conteúdos.</p>
+            <input type="email" id="authEmail" placeholder="Seu email" autocomplete="email">
+            <input type="password" id="authPassword" placeholder="Sua senha" autocomplete="current-password">
+            <p id="authMessage" class="auth-message"></p>
+            <div class="auth-buttons">
+                <button id="loginBtn" class="btn-login">Login</button>
+                <button id="registerBtn" class="btn-register">Registrar</button>
+                <button id="anonymousLoginBtn" class="btn-anonymous">Continuar Anonimamente</button>
+            </div>
+            <p style="margin-top: 20px;">Não tem uma conta? <a href="#" onclick="showRegisterSection()">Registre-se</a>.</p>
+            <p>Já tem uma conta? <a href="#" onclick="showLoginSection()">Faça Login</a>.</p>
+        </div>
+    </div>
+
+    <!-- Novo Modal de Perfil do Usuário -->
+    <div id="userProfilePopup" class="popup-overlay hidden">
+        <div class="popup-content user-profile-modal-content">
+            <span class="popup-close" onclick="closePopup('userProfilePopup')">&times;</span>
+            <h2>Informações do Usuário</h2>
+            <div id="userIdDisplayPopup" style="color: #ccc; font-size: 0.9em; word-break: break-all;">Carregando User ID...</div>
+            <button id="logoutBtnPopup">Logout</button>
+        </div>
+    </div>
+
+
+    <!-- Botão Flutuante de Edição e seu Dropdown (movido para o final do body) -->
+    <button id="editModeBtn" class="hidden">
+        <span class="icon-plus">+</span>
+    </button>
+    <div id="manageDropdown" class="hidden">
+        <button id="addMovieBtnDropdown">Add Filme</button>
+        <button id="addSeriesBtnDropdown">Add Série</button>
+        <button id="editContentBtnDropdown">Editar</button>
+    </div>
+
+
+    <!-- Datalist para sugestões de plataformas -->
+    <datalist id="platformOptions">
+        <option value="Google Drive">
+        <option value="YouTube">
+        <option value="OK.ru">
+        <option value="Vimeo">
+        <option value="Mega">
+        <option value="OneDrive">
+        <option value="Outro">
+    </datalist>
+
+    <script type="module">
+        // Importações do Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, 
+                 createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Variáveis globais do ambiente Canvas (mantidas para compatibilidade)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Sua configuração do Firebase fornecida
+        const firebaseConfig = {
+            apiKey: "AIzaSyDtPwBya7Z0njKLCKGBXT9ZBrybc5yLmTY",
+            authDomain: "fs-akd.firebaseapp.com",
+            projectId: "fs-akd",
+            storageBucket: "fs-akd.firebasestorage.app",
+            messagingSenderId: "316682333307",
+            appId: "1:316682333307:web:9a573729f9e850e98886de"
+        };
+
+        // Inicializa o Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let userId = null; // Variável para armazenar o ID do usuário
+
+        // Mapeamento de classificações indicativas do inglês para o português do Brasil
+        const ratingTranslations = {
+            "G": "Livre",
+            "PG": "Livre",
+            "PG-13": "12 Anos",
+            "R": "16 Anos",
+            "NC-17": "18 Anos",
+            "X": "18 Anos",
+            "Not Rated": "Não Classificado",
+            "Unrated": "Não Classificado",
+        };
+
+        // Chave de API do OMDb - **Substitua pela sua chave OMDb**
+        const OMDB_API_KEY = '8113b9a2'; 
+
+        // Chave de API do Gemini (sua chave fornecida)
+        const GEMINI_API_KEY = "AIzaSyBsFzuW2-Qyito-zJ6k620mCT-Xvzw_6zQ";
+
+
+        // --- Variáveis e Elementos DOM ---
+        let mainHeader;
+        let editModeBtn;
+        let manageDropdown;
+        let addMovieBtnDropdown;
+        let addSeriesBtnDropdown;
+        let editContentBtnDropdown;
+        let mainContent;
+        let userProfileBtn;
+        let userProfilePopup;
+        let userIdDisplayPopup;
+        let logoutBtnPopup;
+
+        let addMoviePopup;
+        let addSeriesPopup;
+        let itemDetailsPopup;
+        let editContentPopup;
+        let editSearchInput;
+        let authPopup;
+        let authEmailInput;
+        let authPasswordInput;
+        let authMessage;
+        let loginBtn;
+        let registerBtn;
+        let anonymousLoginBtn;
+
+        let addMovieForm;
+        let addSeriesForm;
+        let episodesContainer;
+        let movieLinksContainer;
+        let seriesLinksContainer;
+
+        let imdbCodeInput;
+        let searchImdbBtn;
+        let imdbLoading;
+        let imdbError;
+
+        let seriesImdbCodeInput;
+        let searchSeriesImdbBtn;
+        let seriesImdbLoading;
+        let seriesImdbError;
+
+        let highlightCover;
+        let highlightTitle;
+        let highlightRating;
+        let highlightSynopsis;
+        let episodesListTitle;
+        let linksListTitle;
+
+        // NOVO: Elementos para Coleções e Sugestões
+        let movieCollectionsInput;
+        let seriesCollectionsInput;
+        let detailsCollectionsContainer;
+        let detailsCollections;
+        let suggestionsCarouselContainer;
+        let suggestionsCarouselWrapper;
+
+        let contentData = []; // Agora será preenchido pelo Firestore
+        
+        // --- Funções de UI ---
+
+        /**
+         * Abre um popup específico pelo seu ID.
+         * @param {string} popupId - O ID do popup a ser aberto.
+         */
+        function openPopup(popupId) {
+            const popupElement = document.getElementById(popupId);
+            if (popupElement) {
+                popupElement.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    popupElement.classList.add('active');
+                });
+                // Fechar o dropdown de gerenciamento se estiver aberto
+                if (manageDropdown && manageDropdown.classList.contains('active')) {
+                     manageDropdown.classList.remove('active');
+                     manageDropdown.classList.add('hidden');
+                     editModeBtn.classList.remove('active');
+                     editModeBtn.querySelector('.icon-plus').textContent = '+';
+                }
+                if (popupId === 'editContentPopup' && editSearchInput) {
+                    editSearchInput.focus();
+                }
+            }
+        }
+
+        /**
+         * Fecha um popup específico pelo seu ID e reseta formulários relacionados.
+         * @param {string} popupId - O ID do popup a ser fechado.
+         */
+        function closePopup(popupId) {
+            const popupElement = document.getElementById(popupId);
+            if (popupElement) {
+                popupElement.classList.remove('active');
+                popupElement.addEventListener('transitionend', function handler() {
+                    popupElement.classList.add('hidden');
+                    popupElement.removeEventListener('transitionend', handler);
+                }, { once: true });
+
+                // Limpa e reseta formulários e mensagens
+                if (popupId === 'editContentPopup' && editSearchInput) {
+                    editSearchInput.value = '';
+                }
+                if (addMovieForm) {
+                    addMovieForm.reset();
+                    const movieSubmitButton = addMovieForm.querySelector('button[type="submit"]');
+                    if (movieSubmitButton && movieSubmitButton.textContent === 'Salvar Edição do Filme') {
+                        movieSubmitButton.textContent = 'Adicionar Filme';
+                        document.getElementById('movieEditId')?.remove();
+                    }
+                    if (movieLinksContainer) {
+                        movieLinksContainer.innerHTML = '';
+                        addLinkField('movie');
+                    }
+                }
+                if (addSeriesForm) {
+                    addSeriesForm.reset();
+                    const seriesSubmitButton = addSeriesForm.querySelector('button[type="submit"]');
+                    if (seriesSubmitButton && seriesSubmitButton.textContent === 'Salvar Edição da Série') {
+                        seriesSubmitButton.textContent = 'Adicionar Série';
+                        document.getElementById('seriesEditId')?.remove();
+                    }
+                    if (episodesContainer) {
+                        episodesContainer.innerHTML = '<h3>Episódios:</h3>';
+                        addEpisodeField();
+                    }
+                    if (seriesLinksContainer) {
+                        seriesLinksContainer.innerHTML = '';
+                        addLinkField('series');
+                    }
+                }
+                
+                // Limpa mensagens de erro/loading do IMDb para ambos os formulários
+                if (imdbLoading) imdbLoading.style.display = 'none';
+                if (imdbError) imdbError.style.display = 'none';
+                if (seriesImdbLoading) seriesImdbLoading.style.display = 'none';
+                if (seriesImdbError) seriesImdbError.style.display = 'none';
+
+                // Limpa mensagem do modal de autenticação
+                if (authMessage) authMessage.textContent = '';
+            }
+        }
+
+        // Expondo closePopup ao escopo global para que os atributos onclick no HTML possam chamá-lo
+        window.closePopup = closePopup;
+
+        /**
+         * Mostra a seção de Login no modal de autenticação.
+         */
+        window.showLoginSection = function() {
+            if (authPopup) {
+                authEmailInput.placeholder = "Seu email";
+                authPasswordInput.placeholder = "Sua senha";
+                if (loginBtn) loginBtn.classList.remove('hidden');
+                if (registerBtn) registerBtn.classList.add('hidden');
+                if (anonymousLoginBtn) anonymousLoginBtn.classList.remove('hidden');
+                if (authMessage) authMessage.textContent = '';
+            }
+        }
+
+        /**
+         * Mostra a seção de Registro no modal de autenticação.
+         */
+        window.showRegisterSection = function() {
+            if (authPopup) {
+                authEmailInput.placeholder = "Novo email";
+                authPasswordInput.placeholder = "Nova senha (mín. 6 caracteres)";
+                if (loginBtn) loginBtn.classList.add('hidden');
+                if (registerBtn) registerBtn.classList.remove('hidden');
+                if (anonymousLoginBtn) anonymousLoginBtn.classList.add('hidden');
+                if (authMessage) authMessage.textContent = '';
+            }
+        }
+
+        // --- Lógica de Busca IMDB e Tradução (Compartilhada) ---
+
+        /**
+         * Traduz texto usando a API do Gemini.
+         * @param {string} text - O texto a ser traduzido.
+         * @returns {Promise<string>} - O texto traduzido ou o original em caso de erro.
+         */
+        async function translateText(text) {
+            if (!text || text === 'N/A') return text;
+
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: `Traduza o seguinte texto para português do Brasil: "${text}"` }] });
+                const payload = { contents: chatHistory };
+                const apiKey = GEMINI_API_KEY; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const geminiResponse = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const geminiResult = await geminiResponse.json();
+
+                if (geminiResult.candidates && geminiResult.candidates.length > 0 &&
+                    geminiResult.candidates[0].content && geminiResult.candidates[0].content.parts &&
+                    geminiResult.candidates[0].content.parts.length > 0) {
+                    return geminiResult.candidates[0].content.parts[0].text;
+                } else {
+                    console.warn('Resposta da Gemini API inesperada ou sem conteúdo. Usando texto original.');
+                    return text;
+                }
+            } catch (geminiError) {
+                console.error('Erro ao chamar a Gemini API para tradução:', geminiError);
+                return text;
+            }
+        }
+
+        /**
+         * Traduz classificação indicativa de inglês para português.
+         * @param {string} englishRating - A classificação em inglês.
+         * @returns {string} - A classificação traduzida.
+         */
+        function translateRating(englishRating) {
+            return ratingTranslations[englishRating] || englishRating;
+        }
+
+        /**
+         * Busca dados de filme no OMDb API e preenche o formulário de filme.
+         */
+        async function fetchMovieData() {
+            const imdbId = imdbCodeInput.value.trim();
+            if (!imdbId) {
+                alert('Por favor, insira um Código IMDB.');
+                return;
+            }
+
+            imdbLoading.style.display = 'block';
+            imdbError.style.display = 'none';
+
+            try {
+                const omdbResponse = await fetch(`https://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_API_KEY}`);
+                const omdbData = await omdbResponse.json();
+
+                if (omdbData.Response === 'False') {
+                    imdbError.textContent = `Filme/Série não encontrado(a) no OMDb: ${omdbData.Error}`;
+                    imdbError.style.display = 'block';
+                    imdbLoading.style.display = 'none';
+                    return;
+                }
+
+                const translatedTitle = await translateText(omdbData.Title || '');
+                const translatedRating = translateRating(omdbData.Rated || 'N/A');
+                const translatedPlot = await translateText(omdbData.Plot || '');
+                const cover = omdbData.Poster && omdbData.Poster !== 'N/A' ? omdbData.Poster : 'https://placehold.co/200x300/333/FFF?text=Capa';
+                const translatedGenre = await translateText(omdbData.Genre || 'N/A');
+
+                document.getElementById('movieTitle').value = translatedTitle;
+                document.getElementById('movieRating').value = translatedRating;
+                document.getElementById('movieSynopsis').value = translatedPlot;
+                document.getElementById('movieCover').value = cover;
+                document.getElementById('movieCategories').value = translatedGenre;
+                // Não preenchemos coleções automaticamente via OMDb pois não há um campo equivalente direto.
+
+                imdbLoading.style.display = 'none';
+                imdbError.style.display = 'none';
+
+            } catch (error) {
+                console.error('Erro na busca IMDB de filme:', error);
+                imdbError.textContent = 'Erro ao buscar informações. Verifique sua conexão ou o código IMDB.';
+                imdbError.style.display = 'block';
+                imdbLoading.style.display = 'none';
+            }
+        }
+
+        /**
+         * Busca dados de série no OMDb API e preenche o formulário de série.
+         */
+        async function fetchSeriesData() {
+            const imdbId = seriesImdbCodeInput.value.trim();
+            if (!imdbId) {
+                alert('Por favor, insira um Código IMDB.');
+                return;
+            }
+
+            seriesImdbLoading.style.display = 'block';
+            seriesImdbError.style.display = 'none';
+
+            try {
+                const omdbResponse = await fetch(`https://www.omdbapi.com/?i=${imdbId}&apikey=${OMDB_API_KEY}`);
+                const omdbData = await omdbResponse.json();
+
+                if (omdbData.Response === 'False') {
+                    seriesImdbError.textContent = `Filme/Série não encontrado(a) no OMDb: ${omdbData.Error}`;
+                    seriesImdbError.style.display = 'block';
+                    seriesImdbLoading.style.display = 'none';
+                    return;
+                }
+
+                const translatedTitle = await translateText(omdbData.Title || '');
+                const translatedRating = translateRating(omdbData.Rated || 'N/A');
+                const translatedPlot = await translateText(omdbData.Plot || '');
+                const cover = omdbData.Poster && omdbData.Poster !== 'N/A' ? omdbData.Poster : 'https://placehold.co/200x300/333/FFF?text=Capa';
+                const translatedGenre = await translateText(omdbData.Genre || 'N/A');
+                
+                document.getElementById('seriesTitle').value = translatedTitle;
+                document.getElementById('seriesRating').value = translatedRating;
+                document.getElementById('seriesSynopsis').value = translatedPlot;
+                document.getElementById('seriesCover').value = cover;
+                document.getElementById('seriesCategories').value = translatedGenre;
+                // Não preenchemos coleções automaticamente via OMDb pois não há um campo equivalente direto.
+
+                seriesImdbLoading.style.display = 'none';
+                seriesImdbError.style.display = 'none';
+
+            } catch (error) {
+                console.error('Erro na busca IMDB para série:', error);
+                seriesImdbError.textContent = 'Erro ao buscar informações. Verifique sua conexão ou o código IMDB.';
+                seriesImdbError.style.display = 'block';
+                seriesImdbLoading.style.display = 'none';
+            }
+        }
+
+        /**
+         * Adiciona um novo campo de episódio no formulário de série.
+         * @param {object} [episode={title: '', link: ''}] - Objeto de episódio para preencher os campos.
+         */
+        window.addEpisodeField = function(episode = { title: '', link: '' }) {
+            if (!episodesContainer) return;
+
+            const uniqueId = Date.now() + Math.floor(Math.random() * 1000);
+            const episodeGroup = document.createElement('div');
+            episodeGroup.classList.add('episode-input-group');
+            episodeGroup.innerHTML = `
+                <div class="episode-fields-content">
+                    <label for="episodeTitle_${uniqueId}">Título do Episódio:</label>
+                    <input type="text" id="episodeTitle_${uniqueId}" value="${episode.title}" placeholder="Ex: Título do Episódio Piloto">
+                    <label for="episodeLink_${uniqueId}">Link Google Drive:</label>
+                    <input type="text" id="episodeLink_${uniqueId}" value="${episode.link}" placeholder="Link do Google Drive" required>
+                </div>
+                <button type="button" class="remove-episode-button" onclick="removeEpisodeField(this)">&times;</button>
+            `;
+            episodesContainer.appendChild(episodeGroup);
+        }
+
+        /**
+         * Remove um campo de episódio do formulário de série.
+         * @param {HTMLElement} buttonElement - O botão de remover clicado.
+         */
+        window.removeEpisodeField = function(buttonElement) {
+            const episodeGroupToRemove = buttonElement.closest('.episode-input-group');
+            if (episodeGroupToRemove) {
+                episodeGroupToRemove.remove();
+            }
+        }
+
+        /**
+         * Adiciona um novo campo de link (plataforma + URL) no formulário de filme/série.
+         * @param {string} type - 'movie' ou 'series' para determinar onde adicionar o link.
+         * @param {object} [link={platform: '', url: ''}] - Objeto de link para preencher os campos.
+         */
+        window.addLinkField = function(type, link = { platform: '', url: '' }) {
+            const containerId = type === 'movie' ? 'movieLinksContainer' : 'seriesLinksContainer';
+            const linksContainer = document.getElementById(containerId);
+
+            if (!linksContainer) return;
+
+            if (linksContainer.children.length >= 5) {
+                alert('Você pode adicionar no máximo 5 links por conteúdo.');
+                return;
+            }
+
+            const uniqueId = Date.now() + Math.floor(Math.random() * 1000);
+            const linkGroup = document.createElement('div');
+            linkGroup.classList.add('link-input-group');
+            linkGroup.innerHTML = `
+                <div class="link-fields-content">
+                    <label for="platform_${uniqueId}">Plataforma:</label>
+                    <input type="text" id="platform_${uniqueId}" value="${link.platform}" list="platformOptions" placeholder="Ex: Google Drive, YouTube">
+                    <label for="url_${uniqueId}">URL do Link:</label>
+                    <input type="url" id="url_${uniqueId}" value="${link.url}" placeholder="https://exemplo.com/link" required>
+                </div>
+                <button type="button" class="remove-link-button" onclick="removeLinkField(this)">&times;</button>
+            `;
+            linksContainer.appendChild(linkGroup);
+        }
+
+        /**
+         * Remove um campo de link do formulário.
+         * @param {HTMLElement} buttonElement - O botão de remover clicado.
+         */
+        window.removeLinkField = function(buttonElement) {
+            const linkGroupToRemove = buttonElement.closest('.link-input-group');
+            if (linkGroupToRemove) {
+                linkGroupToRemove.remove();
+            }
+        }
+
+
+        // --- Funções de Renderização e Lógica de Dados (Firestore) ---
+
+        // Função para embaralhar um array (algoritmo de Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        /**
+         * Salva ou atualiza um item de conteúdo (filme/série) no Firestore.
+         * @param {object} item - O objeto de filme ou série a ser salvo.
+         */
+        async function saveItemToFirestore(item) {
+            if (!userId) {
+                alert("Erro: Usuário não autenticado. Não é possível salvar dados.");
+                console.error("Usuário não autenticado. Não é possível salvar dados.");
+                return;
+            }
+            const collectionRef = collection(db, `artifacts/${appId}/users/${userId}/contentData`);
+            try {
+                if (item.id) {
+                    const docRef = doc(collectionRef, item.id.toString());
+                    await setDoc(docRef, item);
+                    console.log("Documento atualizado com ID: ", item.id);
+                } else {
+                    const newId = Date.now();
+                    const docRef = doc(collectionRef, newId.toString());
+                    item.id = newId;
+                    await setDoc(docRef, item);
+                    console.log("Novo documento adicionado com ID: ", newId);
+                }
+            } catch (e) {
+                alert("Erro ao salvar/atualizar conteúdo: " + e.message);
+                console.error("Erro ao adicionar/atualizar documento: ", e);
+            }
+        }
+
+        /**
+         * Event listener para o formulário de adicionar filme (agora salva no Firestore e coleta links e coleções).
+         * @param {Event} e - O evento de submissão do formulário.
+         */
+        async function handleAddMovieSubmit(e) {
+            e.preventDefault();
+            const idToEdit = document.getElementById('movieEditId')?.value;
+            const title = document.getElementById('movieTitle').value;
+            const cover = document.getElementById('movieCover').value;
+            const synopsis = document.getElementById('movieSynopsis').value;
+            const rating = document.getElementById('movieRating').value;
+            const categories = document.getElementById('movieCategories').value
+                                 .split(',')
+                                 .map(cat => cat.trim())
+                                 .filter(cat => cat !== '');
+            // Coleta coleções
+            const collections = movieCollectionsInput.value
+                                    .split(',')
+                                    .map(col => col.trim())
+                                    .filter(col => col !== '');
+            
+            const links = [];
+            document.querySelectorAll('#movieLinksContainer .link-input-group').forEach(group => {
+                const platformInput = group.querySelector('input[id^="platform_"]');
+                const urlInput = group.querySelector('input[id^="url_"]');
+                if (platformInput && urlInput && urlInput.value.trim()) {
+                    links.push({ platform: platformInput.value.trim(), url: urlInput.value.trim() });
+                }
+            });
+
+            if (links.length === 0) {
+                alert('Pelo menos um link é obrigatório para o filme.');
+                return;
+            }
+
+            const movieData = {
+                type: 'movie',
+                title, cover, synopsis, rating, categories, links,
+                collections // Adicionado coleções
+            };
+
+            if (idToEdit) {
+                movieData.id = parseInt(idToEdit);
+            }
+
+            await saveItemToFirestore(movieData);
+            console.log('Filme adicionado/atualizado com sucesso!');
+            closePopup('addMoviePopup');
+        }
+
+        /**
+         * Event listener para o formulário de adicionar série (agora salva no Firestore e coleta links e coleções).
+         * @param {Event} e - O evento de submissão do formulário.
+         */
+        async function handleAddSeriesSubmit(e) {
+            e.preventDefault();
+            const idToEdit = document.getElementById('seriesEditId')?.value;
+            const title = document.getElementById('seriesTitle').value;
+            const cover = document.getElementById('seriesCover').value;
+            const rating = document.getElementById('seriesRating').value;
+            const synopsis = document.getElementById('seriesSynopsis').value;
+            let categories = document.getElementById('seriesCategories').value
+                                 .split(',')
+                                 .map(cat => cat.trim())
+                                 .filter(cat => cat !== '');
+
+            if (!categories.includes('Séries')) {
+                categories.unshift('Séries');
+            }
+
+            // Coleta coleções
+            const collections = seriesCollectionsInput.value
+                                    .split(',')
+                                    .map(col => col.trim())
+                                    .filter(col => col !== '');
+
+            const episodes = [];
+            const episodeInputs = episodesContainer.querySelectorAll('.episode-input-group');
+
+            episodeInputs.forEach(group => {
+                const titleInput = group.querySelector('input[id^="episodeTitle_"]');
+                const linkInput = group.querySelector('input[id^="episodeLink_"]');
+                if (titleInput && linkInput && linkInput.value.trim()) {
+                    episodes.push({
+                        title: titleInput.value.trim(),
+                        link: linkInput.value.trim()
+                    });
+                }
+            });
+
+            if (episodes.length === 0) {
+                alert('Pelo menos um episódio é obrigatório para a série.');
+                return;
+            }
+
+            const links = [];
+            document.querySelectorAll('#seriesLinksContainer .link-input-group').forEach(group => {
+                const platformInput = group.querySelector('input[id^="platform_"]');
+                const urlInput = group.querySelector('input[id^="url_"]');
+                if (platformInput && urlInput && urlInput.value.trim()) {
+                    links.push({ platform: platformInput.value.trim(), url: urlInput.value.trim() });
+                }
+            });
+
+            if (links.length === 0) {
+                alert('Pelo menos um link é obrigatório para a série.');
+                return;
+            }
+
+            const seriesData = {
+                type: 'series',
+                title, cover, rating, synopsis, episodes, categories, links,
+                collections // Adicionado coleções
+            };
+
+            if (idToEdit) {
+                seriesData.id = parseInt(idToEdit);
+            }
+
+            await saveItemToFirestore(seriesData);
+            console.log('Série adicionada/atualizada com sucesso!');
+            closePopup('addSeriesPopup');
+        }
+
+        /**
+         * Deleta um item de conteúdo do Firestore.
+         * @param {number} id - O ID do item a ser deletado.
+         */
+        async function deleteItem(id) {
+            if (!userId) {
+                alert("Erro: Usuário não autenticado. Não é possível deletar dados.");
+                console.error("Usuário não autenticado. Não é possível deletar dados.");
+                return;
+            }
+            if (!confirm('Tem certeza que deseja excluir este item?')) {
+                return;
+            }
+            console.log(`Tentando excluir item com ID ${id}.`);
+            try {
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/contentData`, id.toString());
+                await deleteDoc(docRef);
+                console.log("Documento deletado com ID: ", id);
+                alert('Item excluído com sucesso!');
+            } catch (e) {
+                alert("Erro ao deletar item: " + e.message);
+                console.error("Erro ao deletar documento: ", e);
+            }
+        }
+        // Expondo deleteItem ao escopo global para que os atributos onclick no HTML possam chamá-lo
+        window.deleteItem = deleteItem;
+
+        /**
+         * Preenche o formulário para edição de um item de conteúdo.
+         * @param {number} id - O ID do item a ser editado.
+         */
+        function editItem(id) {
+            console.log(`Editando item com ID ${id}. O formulário será pré-preenchido.`);
+            const itemToEdit = contentData.find(item => item.id === id);
+            if (itemToEdit) {
+                 closePopup('editContentPopup');
+                if (itemToEdit.type === 'movie') {
+                    openPopup('addMoviePopup');
+                    document.getElementById('movieTitle').value = itemToEdit.title;
+                    document.getElementById('movieCover').value = itemToEdit.cover;
+                    document.getElementById('movieSynopsis').value = itemToEdit.synopsis;
+                    document.getElementById('movieRating').value = itemToEdit.rating;
+                    document.getElementById('movieCategories').value = itemToEdit.categories ? itemToEdit.categories.join(', ') : '';
+                    movieCollectionsInput.value = itemToEdit.collections ? itemToEdit.collections.join(', ') : ''; // Preenche coleções
+
+                    movieLinksContainer.innerHTML = '';
+                    if (itemToEdit.links && itemToEdit.links.length > 0) {
+                        itemToEdit.links.forEach(link => addLinkField('movie', link));
+                    } else {
+                        addLinkField('movie');
+                    }
+
+                    let hiddenIdInput = document.getElementById('movieEditId');
+                    if (!hiddenIdInput) {
+                        hiddenIdInput = document.createElement('input');
+                        hiddenIdInput.type = 'hidden';
+                        hiddenIdInput.id = 'movieEditId';
+                        addMovieForm.appendChild(hiddenIdInput);
+                    }
+                    hiddenIdInput.value = itemToEdit.id;
+                    addMovieForm.querySelector('button[type="submit"]').textContent = 'Salvar Edição do Filme';
+
+                } else if (itemToEdit.type === 'series') {
+                    openPopup('addSeriesPopup');
+                    document.getElementById('seriesTitle').value = itemToEdit.title;
+                    document.getElementById('seriesCover').value = itemToEdit.cover;
+                    document.getElementById('seriesRating').value = itemToEdit.rating;
+                    document.getElementById('seriesSynopsis').value = itemToEdit.synopsis;
+                    document.getElementById('seriesCategories').value = itemToEdit.categories ? itemToEdit.categories.join(', ') : 'Séries';
+                    seriesCollectionsInput.value = itemToEdit.collections ? itemToEdit.collections.join(', ') : ''; // Preenche coleções
+
+                    episodesContainer.innerHTML = '<h3>Episódios:</h3>';
+                    itemToEdit.episodes.forEach(episode => {
+                        addEpisodeField(episode);
+                    });
+                    if (itemToEdit.episodes.length === 0) {
+                        addEpisodeField();
+                    }
+
+                    seriesLinksContainer.innerHTML = '';
+                    if (itemToEdit.links && itemToEdit.links.length > 0) {
+                        itemToEdit.links.forEach(link => addLinkField('series', link));
+                    } else {
+                        addLinkField('series');
+                    }
+
+                    let hiddenIdInput = document.getElementById('seriesEditId');
+                    if (!hiddenIdInput) {
+                        hiddenIdInput = document.createElement('input');
+                        hiddenIdInput.type = 'hidden';
+                        hiddenIdInput.id = 'seriesEditId';
+                        addSeriesForm.appendChild(hiddenIdInput);
+                    }
+                    hiddenIdInput.value = itemToEdit.id;
+                    addSeriesForm.querySelector('button[type="submit"]').textContent = 'Salvar Edição da Série';
+                }
+            }
+        }
+        // Expondo editItem ao SCOPE global
+        window.editItem = editItem;
+
+
+        // Função para escolher um item aleatório do array contentData
+        function getRandomItem(arr) {
+            if (!arr || arr.length === 0) {
+                return null;
+            }
+            const randomIndex = Math.floor(Math.random() * arr.length);
+            return arr[randomIndex];
+        }
+
+        // Função para renderizar a seção de destaque
+        async function renderHighlight() {
+            const randomItem = getRandomItem(contentData);
+            const destaqueSection = document.getElementById('destaque-section');
+
+            if (destaqueSection && randomItem) {
+                destaqueSection.style.display = 'block';
+                if (highlightCover) highlightCover.src = randomItem.cover || 'https://placehold.co/200x300/333/FFF?text=Capa';
+                if (highlightTitle) highlightTitle.textContent = randomItem.title;
+                if (highlightRating) highlightRating.textContent = randomItem.rating;
+                if (highlightSynopsis) highlightSynopsis.textContent = randomItem.synopsis;
+
+                const highlightContainer = destaqueSection.querySelector('.highlight-container');
+                if (highlightContainer) {
+                    highlightContainer.onclick = () => showItemDetails(randomItem);
+                }
+
+            } else if (destaqueSection) {
+                destaqueSection.style.display = 'none';
+            }
+        }
+
+        // Função para renderizar os carrosséis (chamada pelo onSnapshot)
+        function renderCarrossels() {
+            if (!mainContent) return;
+
+            const existingCarousels = mainContent.querySelectorAll('.carousel-section:not(#destaque-section)');
+            existingCarousels.forEach(carousel => carousel.remove());
+
+            let allCategories = new Set();
+            contentData.forEach(item => {
+                if (item.categories && Array.isArray(item.categories)) {
+                    item.categories.forEach(cat => allCategories.add(cat));
+                }
+            });
+
+            let categories = Array.from(allCategories).sort();
+
+            const seriesIndex = categories.indexOf('Séries');
+            if (seriesIndex > -1) {
+                const seriesCategory = categories.splice(seriesIndex, 1)[0];
+                categories.unshift(seriesCategory);
+            }
+
+            categories.forEach(category => {
+                if (category === 'Destaque') return; 
+
+                const categorySection = document.createElement('section');
+                categorySection.classList.add('carousel-section');
+                categorySection.innerHTML = `
+                    <div class="carousel-title-container">
+                        <h2 class="carousel-title">${category}</h2>
+                    </div>
+                    <div class="carousel-wrapper">
+                        <div class="carousel-container" id="carousel-${category.replace(/\s+/g, '-')}-container"></div>
+                    </div>
+                `;
+                mainContent.appendChild(categorySection);
+
+                const carouselContainer = document.getElementById(`carousel-${category.replace(/\s+/g, '-')}-container`);
+                const itemsInCategory = contentData.filter(item =>
+                    item.categories && Array.isArray(item.categories) && item.categories.includes(category)
+                );
+
+                shuffleArray(itemsInCategory);
+
+                itemsInCategory.forEach(item => {
+                    const carouselItem = document.createElement('div');
+                    carouselItem.classList.add('carousel-item');
+                    carouselItem.innerHTML = `
+                        <img src="${item.cover || 'https://placehold.co/150x220/333/FFF?text=Capa'}" alt="${item.title}">
+                        <h3>${item.title}</h3>
+                    `;
+                    carouselItem.addEventListener('click', () => showItemDetails(item));
+                    carouselContainer.appendChild(carouselItem);
+                });
+            });
+        }
+
+        /**
+         * Exibe os detalhes de um filme/série no popup `itemDetailsPopup`.
+         * Agora mostra múltiplos links, plataformas e sugestões de coleção.
+         * @param {object} item - O objeto do filme ou série.
+         */
+        window.showItemDetails = function(item) {
+            if (!itemDetailsPopup) return;
+
+            document.getElementById('detailsCover').src = item.cover || 'https://placehold.co/200x300/333/FFF?text=Capa';
+            document.getElementById('detailsTitle').textContent = item.title;
+            document.getElementById('detailsRating').textContent = item.rating;
+            document.getElementById('detailsCategories').textContent = item.categories && item.categories.length > 0 ? item.categories.join(', ') : 'N/A';
+            document.getElementById('detailsSynopsis').textContent = item.synopsis;
+
+            // NOVO: Exibe as coleções
+            if (item.collections && item.collections.length > 0) {
+                detailsCollections.textContent = item.collections.join(', ');
+                detailsCollectionsContainer.classList.remove('hidden');
+            } else {
+                detailsCollections.textContent = 'N/A';
+                detailsCollectionsContainer.classList.add('hidden');
+            }
+
+            const detailsEpisodes = document.getElementById('detailsEpisodes');
+            const detailsLinks = document.getElementById('detailsLinks');
+
+            detailsEpisodes.innerHTML = '';
+            detailsEpisodes.classList.add('hidden');
+            if (episodesListTitle) episodesListTitle.classList.add('hidden');
+            
+            detailsLinks.innerHTML = '';
+            if (linksListTitle) linksListTitle.classList.add('hidden');
+
+
+            if (item.type === 'series' && item.episodes && item.episodes.length > 0) {
+                if (episodesListTitle) episodesListTitle.classList.remove('hidden');
+                detailsEpisodes.classList.remove('hidden');
+                item.episodes.forEach((episode, index) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <span>${episode.title}</span>
+                        <a href="${episode.link}" target="_blank">Assistir Episódio ${index + 1}</a>
+                    `;
+                    detailsEpisodes.appendChild(li);
+                });
+            }
+
+            if (item.links && item.links.length > 0) {
+                if (linksListTitle) linksListTitle.classList.remove('hidden');
+                item.links.forEach(link => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <span>${link.platform}</span>
+                        <a href="${link.url}" target="_blank">Assistir</a>
+                    `;
+                    detailsLinks.appendChild(li);
+                });
+            } else {
+                if (linksListTitle) linksListTitle.classList.remove('hidden'); 
+                const li = document.createElement('li');
+                li.textContent = 'Nenhum link disponível.';
+                li.style.textAlign = 'center';
+                li.style.color = '#aaa';
+                li.style.fontSize = '0.9em';
+                li.style.backgroundColor = 'transparent';
+                li.style.justifyContent = 'center';
+                detailsLinks.appendChild(li);
+            }
+
+            // NOVO: Renderiza Sugestões de Coleção
+            suggestionsCarouselWrapper.innerHTML = ''; // Limpa sugestões anteriores
+            suggestionsCarouselContainer.classList.add('hidden'); // Esconde por padrão
+
+            if (item.collections && item.collections.length > 0) {
+                const suggestedItems = contentData.filter(contentItem => 
+                    contentItem.id !== item.id && // Não é o mesmo item
+                    contentItem.collections && // Tem coleções definidas
+                    contentItem.collections.some(col => item.collections.includes(col)) // Compartilha pelo menos uma coleção
+                );
+
+                if (suggestedItems.length > 0) {
+                    shuffleArray(suggestedItems); // Embaralha as sugestões
+                    const itemsToShow = suggestedItems.slice(0, 6); // Limita a 6 sugestões
+
+                    itemsToShow.forEach(suggestedItem => {
+                        const suggestionDiv = document.createElement('div');
+                        suggestionDiv.classList.add('suggestion-item');
+                        suggestionDiv.innerHTML = `
+                            <img src="${suggestedItem.cover || 'https://placehold.co/100x140/333/FFF?text=Capa'}" alt="${suggestedItem.title}">
+                            <h5>${suggestedItem.title}</h5>
+                        `;
+                        suggestionDiv.addEventListener('click', () => showItemDetails(suggestedItem));
+                        suggestionsCarouselWrapper.appendChild(suggestionDiv);
+                    });
+                    suggestionsCarouselContainer.classList.remove('hidden');
+                }
+            }
+
+            openPopup('itemDetailsPopup');
+        }
+
+
+        /**
+         * Renderiza a lista de conteúdo para edição/exclusão no popup `editContentPopup`.
+         * @param {string} [filterText=''] - Texto para filtrar a lista.
+         */
+        function renderEditableContentList(filterText = '') {
+            const editableContentList = document.getElementById('editableContentList');
+            if (!editableContentList) return;
+
+            editableContentList.innerHTML = '';
+
+            const filteredContent = contentData.filter(item =>
+                item.title.toLowerCase().includes(filterText.toLowerCase())
+            );
+
+            if (filteredContent.length === 0) {
+                editableContentList.innerHTML = '<p style="text-align: center;">Nenhum conteúdo encontrado com este termo.</p>';
+                return;
+            }
+
+            filteredContent.forEach(item => {
+                const itemCard = document.createElement('div');
+                itemCard.classList.add('item-card');
+                itemCard.innerHTML = `
+                    <img src="${item.cover || 'https://placehold.co/60x90/333/FFF?text=Capa'}" alt="${item.title}">
+                    <div>
+                        <h3>${item.title}</h3>
+                        <p>Tipo: ${item.type === 'movie' ? 'Filme' : 'Série'}</p>
+                        <p>Categorias: ${item.categories ? item.categories.join(', ') : 'N/A'}</p>
+                        <p>Coleções: ${item.collections && item.collections.length > 0 ? item.collections.join(', ') : 'N/A'}</p>
+                        <p>Plataformas: ${item.links && item.links.length > 0 ? item.links.map(link => link.platform).join(', ') : 'N/A'}</p>
+                    </div>
+                    <div class="item-actions">
+                        <button onclick="editItem(${item.id})">Editar</button>
+                        <button class="delete" onclick="deleteItem(${item.id})">Excluir</button>
+                    </div>
+                `;
+                editableContentList.appendChild(itemCard);
+            });
+        }
+
+        // --- Configuração do Firestore e Autenticação ---
+
+        /**
+         * Configura os listeners do Firestore para atualizações em tempo real dos dados do conteúdo.
+         */
+        async function setupFirestoreListeners() {
+            if (!userId) {
+                console.error("UserID não definido. Não é possível configurar listeners do Firestore.");
+                return;
+            }
+
+            const userContentCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/contentData`);
+            const q = query(userContentCollectionRef);
+
+            onSnapshot(q, (snapshot) => {
+                contentData = [];
+                snapshot.forEach((doc) => {
+                    contentData.push({ id: parseInt(doc.id), ...doc.data() });
+                });
+                
+                shuffleArray(contentData);
+
+                console.log("Dados atualizados do Firestore (embaralhados):", contentData);
+                renderHighlight();
+                renderCarrossels();
+                if (editSearchInput) {
+                    renderEditableContentList(editSearchInput.value);
+                }
+            }, (error) => {
+                console.error("Erro ao ouvir dados do Firestore:", error);
+                alert("Erro ao carregar dados do Firebase: " + error.message);
+            });
+        }
+
+        // Gerenciamento de autenticação
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                console.log("Usuário autenticado:", userId, user.email || "(Anônimo)");
+                if (userIdDisplayPopup) {
+                    userIdDisplayPopup.textContent = `User ID: ${userId}`;
+                    if (user.email) {
+                        userIdDisplayPopup.textContent += ` (${user.email})`;
+                    }
+                }
+                closePopup('authPopup');
+                if (editModeBtn) editModeBtn.classList.remove('hidden');
+                if (userProfileBtn) userProfileBtn.classList.remove('hidden');
+                
+                if (manageDropdown) {
+                    manageDropdown.classList.remove('active');
+                    manageDropdown.classList.add('hidden');
+                }
+                if (editModeBtn) editModeBtn.classList.remove('active');
+                if (editModeBtn) editModeBtn.querySelector('.icon-plus').textContent = '+';
+
+                await setupFirestoreListeners();
+            } else {
+                userId = null;
+                if (userIdDisplayPopup) {
+                    userIdDisplayPopup.textContent = "Faça Login para Gerenciar";
+                }
+                openPopup('authPopup');
+                if (editModeBtn) editModeBtn.classList.add('hidden');
+                if (userProfileBtn) userProfileBtn.classList.add('hidden');
+                if (manageDropdown) {
+                    manageDropdown.classList.remove('active');
+                    manageDropdown.classList.add('hidden');
+                }
+            }
+        });
+
+        // --- Funções de Autenticação ---
+        async function handleLogin() {
+            const email = authEmailInput.value;
+            const password = authPasswordInput.value;
+            if (!email || !password) {
+                authMessage.textContent = "Por favor, preencha email e senha.";
+                return;
+            }
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                authMessage.textContent = "Login bem-sucedido!";
+            } catch (error) {
+                console.error("Erro no login:", error.code, error.message);
+                let msg = "Erro no login. Verifique suas credenciais.";
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    msg = "Email ou senha inválidos.";
+                } else if (error.code === 'auth/invalid-email') {
+                    msg = "Formato de email inválido.";
+                }
+                authMessage.textContent = msg;
+            }
+        }
+
+        async function handleRegister() {
+            const email = authEmailInput.value;
+            const password = authPasswordInput.value;
+            if (!email || !password || password.length < 6) {
+                authMessage.textContent = "Email e senha (mín. 6 caracteres) são obrigatórios.";
+                return;
+            }
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                authMessage.textContent = "Registro bem-sucedido! Faça login.";
+                showLoginSection();
+            } catch (error) {
+                console.error("Erro no registro:", error.code, error.message);
+                let msg = "Erro no registro.";
+                if (error.code === 'auth/email-already-in-use') {
+                    msg = "Este email já está em uso.";
+                } else if (error.code === 'auth/weak-password') {
+                    msg = "Senha muito fraca. Por favor, use pelo menos 6 caracteres.";
+                } else if (error.code === 'auth/invalid-email') {
+                    msg = "Formato de email inválido.";
+                }
+                authMessage.textContent = msg;
+            }
+        }
+
+        async function handleAnonymousLogin() {
+            try {
+                await signInAnonymously(auth);
+                authMessage.textContent = "Login anônimo bem-sucedido!";
+            } catch (error) {
+                console.error("Erro ao fazer login anonimamente:", error.message);
+                authMessage.textContent = "Erro ao entrar anonimamente. Tente novamente.";
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                await signOut(auth);
+                console.log("Usuário desconectado.");
+            } catch (error) {
+                console.error("Erro ao fazer logout:", error.message);
+                alert("Erro ao fazer logout: " + error.message);
+            }
+        }
+
+        /**
+         * Calcula a altura do cabeçalho e aplica como margin-top ao mainContent.
+         * Isso garante que o conteúdo não fique escondido sob o cabeçalho fixo.
+         */
+        function adjustMainContentPadding() {
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    if (mainHeader && mainContent) {
+                        const headerHeight = mainHeader.getBoundingClientRect().height;
+                        mainContent.style.marginTop = `${headerHeight}px`;
+                        console.log(`[DRIVIN DEBUG] Altura do cabeçalho calculada: ${headerHeight}px. Ajustado mainContent margin-top para: ${headerHeight}px.`);
+                    } else {
+                        console.warn("[DRIVIN DEBUG] Cabeçalho principal ou mainContent não encontrados para ajuste de espaçamento.");
+                    }
+                }, 100);
+            });
+        }
+
+        // --- Inicialização ao carregar a página ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Atribui os elementos DOM
+            mainHeader = document.getElementById('mainHeader');
+            editModeBtn = document.getElementById('editModeBtn');
+            manageDropdown = document.getElementById('manageDropdown');
+            addMovieBtnDropdown = document.getElementById('addMovieBtnDropdown');
+            addSeriesBtnDropdown = document.getElementById('addSeriesBtnDropdown');
+            editContentBtnDropdown = document.getElementById('editContentBtnDropdown');
+            mainContent = document.getElementById('mainContent');
+            userProfileBtn = document.getElementById('userProfileBtn');
+            userProfilePopup = document.getElementById('userProfilePopup');
+            userIdDisplayPopup = document.getElementById('userIdDisplayPopup');
+            logoutBtnPopup = document.getElementById('logoutBtnPopup');
+
+            addMoviePopup = document.getElementById('addMoviePopup');
+            addSeriesPopup = document.getElementById('addSeriesPopup');
+            itemDetailsPopup = document.getElementById('itemDetailsPopup');
+            editContentPopup = document.getElementById('editContentPopup');
+            editSearchInput = document.getElementById('editSearchInput');
+            authPopup = document.getElementById('authPopup');
+            authEmailInput = document.getElementById('authEmail');
+            authPasswordInput = document.getElementById('authPassword');
+            authMessage = document.getElementById('authMessage');
+            loginBtn = document.getElementById('loginBtn');
+            registerBtn = document.getElementById('registerBtn');
+            anonymousLoginBtn = document.getElementById('anonymousLoginBtn');
+
+            addMovieForm = document.getElementById('addMovieForm');
+            addSeriesForm = document.getElementById('addSeriesForm');
+            episodesContainer = document.getElementById('episodesContainer');
+            movieLinksContainer = document.getElementById('movieLinksContainer');
+            seriesLinksContainer = document.getElementById('seriesLinksContainer');
+
+            imdbCodeInput = document.getElementById('imdbCode');
+            searchImdbBtn = document.getElementById('searchImdbBtn');
+            imdbLoading = document.getElementById('imdbLoading');
+            imdbError = document.getElementById('imdbError');
+
+            seriesImdbCodeInput = document.getElementById('seriesImdbCode');
+            searchSeriesImdbBtn = document.getElementById('searchSeriesImdbBtn');
+            seriesImdbLoading = document.getElementById('seriesImdbLoading');
+            seriesImdbError = document.getElementById('seriesImdbError');
+
+            highlightCover = document.getElementById('highlightCover');
+            highlightTitle = document.getElementById('highlightTitle');
+            highlightRating = document.getElementById('highlightRating');
+            highlightSynopsis = document.getElementById('highlightSynopsis');
+            episodesListTitle = document.getElementById('episodesListTitle');
+            linksListTitle = document.getElementById('linksListTitle');
+
+            // NOVO: Atribui os elementos DOM para Coleções e Sugestões
+            movieCollectionsInput = document.getElementById('movieCollections');
+            seriesCollectionsInput = document.getElementById('seriesCollections');
+            detailsCollectionsContainer = document.getElementById('detailsCollectionsContainer');
+            detailsCollections = document.getElementById('detailsCollections');
+            suggestionsCarouselContainer = document.getElementById('suggestionsCarouselContainer');
+            suggestionsCarouselWrapper = document.getElementById('suggestionsCarouselWrapper');
+
+            // --- CHAMA A FUNÇÃO DE AJUSTE DO ESPAÇAMENTO AO CARREGAR E AO REDIMENSIONAR ---
+            adjustMainContentPadding();
+            window.addEventListener('resize', adjustMainContentPadding);
+
+            // Event Listeners para botões de autenticação
+            if (loginBtn) loginBtn.addEventListener('click', handleLogin);
+            if (registerBtn) registerBtn.addEventListener('click', handleRegister);
+            if (anonymousLoginBtn) anonymousLoginBtn.addEventListener('click', handleAnonymousLogin);
+            if (logoutBtnPopup) logoutBtnPopup.addEventListener('click', handleLogout);
+
+            // Event Listener para o novo botão de perfil do usuário
+            if (userProfileBtn) {
+                userProfileBtn.addEventListener('click', () => {
+                    openPopup('userProfilePopup');
+                });
+            }
+
+            // Event Listener para o FAB (Modo Edit)
+            if (editModeBtn) {
+                editModeBtn.addEventListener('click', (event) => {
+                    editModeBtn.classList.toggle('active');
+                    if (manageDropdown) {
+                        if (editModeBtn.classList.contains('active')) {
+                            manageDropdown.classList.remove('hidden');
+                            requestAnimationFrame(() => {
+                                manageDropdown.classList.add('active');
+                            });
+                        } else {
+                            manageDropdown.classList.remove('active');
+                            manageDropdown.addEventListener('transitionend', function handler() {
+                                manageDropdown.classList.add('hidden');
+                                manageDropdown.removeEventListener('transitionend', handler);
+                            }, { once: true });
+                        }
+                    }
+                    event.stopPropagation();
+                });
+            }
+
+            // Fecha o dropdown se clicar fora dele ou do FAB
+            document.addEventListener('click', (event) => {
+                if (manageDropdown && editModeBtn) {
+                    const isClickInsideFab = editModeBtn.contains(event.target);
+                    const isClickInsideDropdown = manageDropdown.contains(event.target);
+
+                    if (manageDropdown.classList.contains('active') && !isClickInsideFab && !isClickInsideDropdown) {
+                        manageDropdown.classList.remove('active');
+                        editModeBtn.classList.remove('active');
+                        manageDropdown.addEventListener('transitionend', function handler() {
+                            manageDropdown.classList.add('hidden');
+                            manageDropdown.removeEventListener('transitionend', handler);
+                        }, { once: true });
+                    }
+                }
+            });
+
+            // Event Listeners para os botões de adicionar/editar dentro do dropdown
+            if (addMovieBtnDropdown) addMovieBtnDropdown.addEventListener('click', () => {
+                openPopup('addMoviePopup');
+            });
+            if (addSeriesBtnDropdown) addSeriesBtnDropdown.addEventListener('click', () => {
+                openPopup('addSeriesPopup');
+            });
+            if (editContentBtnDropdown) editContentBtnDropdown.addEventListener('click', () => {
+                openPopup('editContentPopup');
+                renderEditableContentList();
+            });
+
+            // Event Listeners para busca IMDb e submissão de formulários
+            if (searchImdbBtn) searchImdbBtn.addEventListener('click', fetchMovieData);
+            if (seriesImdbCodeInput) searchSeriesImdbBtn.addEventListener('click', fetchSeriesData);
+            if (addMovieForm) addMovieForm.addEventListener('submit', handleAddMovieSubmit);
+            if (addSeriesForm) addSeriesForm.addEventListener('submit', handleAddSeriesSubmit);
+            if (editSearchInput) editSearchInput.addEventListener('input', (event) => {
+                renderEditableContentList(event.target.value);
+            });
+
+            // Adiciona o primeiro campo de episódio e de link ao carregar a página
+            if (episodesContainer && episodesContainer.children.length === 1 && episodesContainer.querySelector('h3')) {
+                 addEpisodeField();
+            }
+            if (movieLinksContainer && movieLinksContainer.children.length === 0) {
+                 addLinkField('movie');
+            }
+            if (seriesLinksContainer && seriesLinksContainer.children.length === 0) {
+                 addLinkField('series');
+            }
+        });
+    </script>
+</body>
+</html>
